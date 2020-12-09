@@ -34,8 +34,6 @@ public class Exercise14_slow {
 				synchronized (BALL) {
 					if(m_ball.isPing()) {
 						m_ball.ping++;
-//						if(m_ball.ping > GAME_LENGTH-10)
-//							out.println("ping : " + m_ball.ping);
 						BALL.notify();
 						if(m_ball.ping < GAME_LENGTH) {
 							try {
@@ -64,8 +62,6 @@ public class Exercise14_slow {
 				if(!m_ball.isPing()) {
 					synchronized (BALL) {
 						m_ball.pong++;
-//						if(m_ball.pong > GAME_LENGTH-10)
-//							out.println("pong : " + m_ball.pong);
 						BALL.notify();
 						if(m_ball.pong < GAME_LENGTH) {
 							try {
