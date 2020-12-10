@@ -5,6 +5,9 @@ import javax.swing.JPanel;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  *
@@ -24,6 +27,14 @@ public class Ex17StargateOneShip extends JPanel
     private int gateX = 300;
     private int gateY = 90;
 
+    private boolean gateClosed = true;
+
+    private Lock gateLock = new ReentrantLock();
+    private Condition gateCond = gateLock.newCondition();
+
+    private boolean shipOut() { return shipX < 250 | shipX >= 350; }
+    private boolean shipIn()  { return shipX >= 250 & shipX < 350; }
+
     private void run()
     {
 
@@ -31,8 +42,92 @@ public class Ex17StargateOneShip extends JPanel
         {
             while (shipX < 400)
             {
-                shipX += 1;
-                sleep(30);
+                if( shipOut() | (shipIn() & !gateClosed) ) {
+                    shipX += 5;
+                    sleep(30);
+                }
+                if(shipX == 250 & gateClosed) {
+                    System.out.println("ship : Open the Gate!");
+                    gateLock.lock();
+                    try {
+                        gateCond.signal();
+                        gateCond.await();
+                    } catch (InterruptedException e){
+                        e.printStackTrace();
+                    }
+                    finally {
+                        gateLock.unlock();
+                    }
+                }
+
+                if(shipX == 350 & !gateClosed) {
+                    System.out.println("ship : Close the Gate!");
+                    gateLock.lock();
+                    try {
+                        gateCond.signal();
+                    }
+                    finally {
+                        gateLock.unlock();
+                    }
+                }
+
+                if( shipX == 400 )
+                    shipX = 0;
+
+            }
+
+        }).start();
+
+        new Thread(() ->
+        {
+            while (true)
+            {
+                if(shipOut() & gateClosed ) {
+                    gateLock.lock();
+                    try {
+                        gateCond.await();
+                    } catch (InterruptedException e){
+                        e.printStackTrace();
+                    }
+                    finally {
+                        gateLock.unlock();
+                    }
+                }
+                if( gateClosed) {
+                    gateY += 5;
+                    sleep(30);
+                    if(gateY == GATE_OPEN_Y) {
+                        gateClosed = false;
+                        System.out.println("Gate : Opened! sleeping...");
+                        gateLock.lock();
+                        try {
+                            gateCond.signal();
+                            gateCond.await();
+                        } catch (InterruptedException e){
+                            e.printStackTrace();
+                        }
+                        finally {
+                            gateLock.unlock();
+                        }
+                    }
+                } else {
+                    gateY -= 5;
+                    sleep(30);
+                    if(gateY == GATE_CLOSED_Y) {
+                        gateClosed = true;
+                        System.out.println("Gate : Closed! sleeping...");
+                        gateLock.lock();
+                        try {
+                            gateCond.signal();
+                            gateCond.await();
+                        } catch (InterruptedException e){
+                            e.printStackTrace();
+                        }
+                        finally {
+                            gateLock.unlock();
+                        }
+                    }
+                }
             }
 
         }).start();
