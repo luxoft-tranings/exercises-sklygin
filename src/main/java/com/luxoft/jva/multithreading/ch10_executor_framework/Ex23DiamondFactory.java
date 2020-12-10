@@ -3,6 +3,7 @@ package com.luxoft.jva.multithreading.ch10_executor_framework;
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,20 +18,20 @@ public class Ex23DiamondFactory extends JPanel
 {
     private static final int WINDOW_WIDTH = 800;
     private static final int COUNT_OF_BLANKS = 100;
-    private static final int COUNT_OF_WORKERS = 12;
+    private static final int COUNT_OF_WORKERS = 5;
 
     private List<Worker> workers = new ArrayList<>();
 
-    private List<Blank> blanks = new ArrayList<>();
+    private List<Blank> blanks = Collections.synchronizedList(new ArrayList<>());
 
-    private List<Blank> table = new ArrayList<>();
-    private List<Diamond> diamonds = new ArrayList<>();
+    private List<Blank> table = Collections.synchronizedList(new ArrayList<>());
+    private List<Diamond> diamonds = Collections.synchronizedList(new ArrayList<>());
 
     private ExecutorService executor;
 
     private void run()
     {
-        executor = Executors.newFixedThreadPool(10);
+        executor = Executors.newFixedThreadPool(30);
 
         generateBlanks();
 
@@ -188,10 +189,11 @@ public class Ex23DiamondFactory extends JPanel
         @Override
         public void run()
         {
-            while (true)
+            while (blanks.size() > 0)
             {
-                if (blanks.size() > 0)
-                {
+//                if (blanks.size() > 0)
+//                {
+                    System.out.println("try to move : " + blanks.size());
                     Future<?> future = executor.submit(new Move(blanks, table));
 
                     while (!future.isDone())
@@ -200,8 +202,11 @@ public class Ex23DiamondFactory extends JPanel
                     }
 
                     sleep(200);
+                    System.out.println("try to MakeDiamond : " + table.size());
                     executor.submit(new MakeDiamond(table, diamonds));
-                }
+//                }
+                if(diamonds.size() == 100)
+                    System.out.println("All Done! : " + table.size());
             }
         }
     }
@@ -246,7 +251,8 @@ public class Ex23DiamondFactory extends JPanel
             while (true)
             {
                 panel.repaint();
-                sleep(60 / 24);
+                sleep(1000 / 30);
+//                System.out.print(".");
             }
         }
     }
